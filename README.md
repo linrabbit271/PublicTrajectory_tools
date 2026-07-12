@@ -3,10 +3,21 @@
 [![Version](https://img.shields.io/badge/Version-v2.014-blue.svg?style=flat-square)](https://github.com/linrabbit271/PublicTrajectory_tools)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-orange.svg?style=flat-square)](https://github.com/linrabbit271/PublicTrajectory_tools)
 [![Framework](https://img.shields.io/badge/Framework-PyQt6%20%7C%20Selenium-1abc9c.svg?style=flat-square)](https://github.com/linrabbit271/PublicTrajectory_tools)
+[![Download](https://img.shields.io/badge/Download-Latest%20Release-27ae60.svg?style=flat-square)](https://github.com/linrabbit271/PublicTrajectory_tools/releases/download/2.014/default.zip)
 
 **基于 PyQt6 与 高速 Selenium 异步双流驱动的高级空海运/跨境电商物流轨迹全景流转集成工具箱。**
 
-本工具箱专为外贸、跨境电商物流（如 Temu、独立站）以及国际空海运货代行业打造。提供集数据清洗、API 劫持、自动化提单跟踪（Tracking）、海关扣件分流及 OCR 图像智能归档于一体的数字化办公全景解方案。
+本工具箱专为外贸、跨境电商物流（如 Temu、独立站）以及国际空海运货代行业打造。提供集数据清洗、API 劫持、自动化提单跟踪（Tracking）、海关扣件分流及 OCR 图像智能归档于一体的数字化办公全景解决方案。
+
+---
+
+## 🚀 极速下载与开箱部署
+
+> ### 📥 官方生产环境单文件包直发通道
+> * **[➔ 🚀 点击此处：一键下载工具箱 v2.014 纯净版 (.zip)](https://github.com/linrabbit271/PublicTrajectory_tools/releases/download/2.014/default.zip)**
+> * **历史版本与更新日志**：[前往 GitHub Releases 官方发布页](https://github.com/linrabbit271/PublicTrajectory_tools/releases)
+> 
+> *注：下载后直接解压即可运行。国内用户如遇网络波动，建议开启代理进行加速下载。*
 
 ---
 
@@ -36,7 +47,7 @@
 
 ---
 
-## 🚀 系统架构与技术风控指标
+## ⚙️ 系统架构与技术风控指标
 
 * **数据脱毒净化**：所有大文本输入区统一采用 `splitlines()` 保底清洗，100% 物理绞杀 Windows 剪贴板夹带的隐藏回车符 `\r`，防止自动化填单与 Pandas 索引发生漏切。
 * **异步线程隔离**：界面渲染与底层网络请求、Selenium 电控焦点、文件读写（`openpyxl` / `shutil`）完全独立。
@@ -45,7 +56,7 @@
 
 ---
 
-## 📦 部署与分发指南
+## 📦 部署与分发须知
 
 本工具箱已通过 PyInstaller 进行了**工业级单文件（`--onefile`）**编译。
 
