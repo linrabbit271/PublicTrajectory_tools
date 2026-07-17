@@ -16,7 +16,21 @@ from modules.Trajectory.trackers.hactl_tracker import open_hactl_tracking
 from modules.Trajectory.trackers.aat_tracker import open_aat_tracking
 from modules.Trajectory.trackers.screenshot_worker import batch_fullpage_screenshot
 
+from PyQt6.QtWidgets import QTextEdit
+from PyQt6.QtGui import QClipboard
 
+class SmartPasteTextEdit(QTextEdit):
+    """ 自定义输入框：强行拦截剪贴板，剥离尾部多余的换行与空格 """
+    def insertFromMimeData(self, source):
+        if source.hasText():
+            # 1. 拿到剪贴板里的原始文本
+            raw_text = source.text()
+            # 2. 核心绝杀：strip() 瞬间剔除文本开头和末尾所有看不见的空格、换行、制表符
+            clean_text = raw_text.strip()
+            # 3. 将干净的文本塞入输入框，此时光标会死死咬在最后一个数字后面
+            self.insertPlainText(clean_text)
+        else:
+            super().insertFromMimeData(source)
 # =====================================================================
 # 🌟 线程安全通讯器
 # =====================================================================
@@ -86,7 +100,8 @@ class TrajectoryCheckerApp:
         lbl_input.setStyleSheet("font-weight: bold; color: #34495e; font-size: 14px;")
         left_layout.addWidget(lbl_input)
 
-        self.input_area = QTextEdit()
+        # 修改后：换成我们手搓的智能过滤框
+        self.input_area = SmartPasteTextEdit()
         self.input_area.setStyleSheet("""
             QTextEdit {
                 font-family: Consolas, monospace;
