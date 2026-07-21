@@ -18,6 +18,22 @@ from PyQt6.QtGui import QFont, QCursor
 
 
 # =====================================================================
+# 🌟 智能拦截输入框：自动清洗粘贴文本，剔除前后空格与隐式空白行
+# =====================================================================
+class SmartPasteTextEdit(QTextEdit):
+    def insertFromMimeData(self, source):
+        if source.hasText():
+            raw_text = source.text()
+            # 按行切分，剔除每行的前后空白，并过滤掉彻底为空的行
+            lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+            # 重新用换行符连接纯净的单号
+            clean_text = "\n".join(lines)
+            self.insertPlainText(clean_text)
+        else:
+            super().insertFromMimeData(source)
+
+
+# =====================================================================
 # 🌟 原生核心工具库 (100% 字节级保留您的算法逻辑)
 # =====================================================================
 def get_browser_config():
@@ -129,7 +145,8 @@ class HactlExtractorDialog(QDialog):
         lbl_input.setStyleSheet("color: #333;")
         main_layout.addWidget(lbl_input)
 
-        self.txt_input = QTextEdit()
+        # 🌟 关键修改：替换为 SmartPasteTextEdit 智能过滤输入框
+        self.txt_input = SmartPasteTextEdit()
         self.txt_input.setFont(QFont("Consolas", 11))
         self.txt_input.setStyleSheet("background-color: white; border: 1px solid #bdc3c7; border-radius: 3px;")
         self.txt_input.setFixedHeight(120)

@@ -18,6 +18,22 @@ from modules.Trajectory.trackers.china_airlines_297_tracker import run_china_air
 
 
 # =====================================================================
+# 🌟 智能拦截输入框：自动清洗粘贴文本，剔除前后空格与隐式空白行
+# =====================================================================
+class SmartPasteTextEdit(QTextEdit):
+    def insertFromMimeData(self, source):
+        if source.hasText():
+            raw_text = source.text()
+            # 按行切分，剔除每行的前后空白，并过滤掉彻底为空的行
+            lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+            # 重新用换行符连接纯净的单号
+            clean_text = "\n".join(lines)
+            self.insertPlainText(clean_text)
+        else:
+            super().insertFromMimeData(source)
+
+
+# =====================================================================
 # 🌟 线程安全通讯器 (完全对齐原版的跨线程逻辑通知，替代原生 win.after)
 # =====================================================================
 class ChinaAirlinesUpdater(QObject):
@@ -128,7 +144,7 @@ class ChinaAirlines297Dialog(QDialog):
         status_lyt.addLayout(grid_layout)
         work_layout.addWidget(status_card)
 
-        # --- 4. 提单号输入框 ---
+        # --- 4. 提单号输入框 (🌟 关键修改：换用 SmartPasteTextEdit) ---
         awb_card = QFrame()
         awb_card.setStyleSheet("background-color: white; border: 1px solid #bdc3c7; border-radius: 4px;")
         awb_lyt = QVBoxLayout(awb_card)
@@ -139,7 +155,8 @@ class ChinaAirlines297Dialog(QDialog):
         lbl_awb.setStyleSheet("color: #2c3e50; border: none;")
         awb_lyt.addWidget(lbl_awb)
 
-        self.text_input = QTextEdit()
+        # 🌟 替换为智能过滤输入框
+        self.text_input = SmartPasteTextEdit()
         self.text_input.setFont(QFont("Consolas", 11))
         self.text_input.setStyleSheet("background-color: #f8f9fa; border: 1px solid #ced4da; padding: 5px;")
         awb_lyt.addWidget(self.text_input)

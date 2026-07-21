@@ -3,22 +3,19 @@ import re
 import sys
 import threading
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QFrame, QTextEdit, QFileDialog, QMessageBox, QWidget, QApplication)
-# 🌟 核心修正：在这里显式地把 pyqtSignal 给引入进来！
+                             QLabel, QFrame, QTextEdit, QLineEdit, QFileDialog, QMessageBox, QWidget, QApplication)
 from PyQt6.QtCore import Qt, QUrl, QObject, pyqtSignal
 from PyQt6.QtGui import QFont, QCursor
 
 
 # =====================================================================
-# 🌟 原生硬核拖拽重写类 (100% 优雅剥离对 tkinterdnd2 的外部依赖)
+# 🌟 原生硬核拖拽重写类
 # =====================================================================
 class DragDropTextEdit(QTextEdit):
-    # 声明一个自定义的文本拖放加载完成信号
     file_dropped_sig = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        # 开启原生的接受拖放流
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event):
@@ -37,7 +34,6 @@ class DragDropTextEdit(QTextEdit):
         if event.mimeData().hasUrls():
             urls = event.mimeData().urls()
             if urls:
-                # 提取第一个被拖入的文件路径
                 file_path = urls[0].toLocalFile()
                 self.file_dropped_sig.emit(file_path)
                 event.acceptProposedAction()
@@ -46,7 +42,7 @@ class DragDropTextEdit(QTextEdit):
 
 
 # =====================================================================
-# 🌟 统一调用入口 (🌟 使用 *args 万能接收，彻底丢弃参数纠缠)
+# 🌟 统一调用入口
 # =====================================================================
 def open_ocr_extractor(*args, **kwargs):
     """供主程序调用的入口"""
@@ -57,10 +53,10 @@ def open_ocr_extractor(*args, **kwargs):
 class OcrExtractorDialog(QDialog):
     def __init__(self):
         super().__init__(None)
-        self._keep_alive = self  # 顶级保活护盾，彻底允许自由最小化和切屏
+        self._keep_alive = self  # 顶级保活护盾
 
-        self.setWindowTitle("拆箱 OCR 单号智能提取器")
-        self.resize(1100, 650)
+        self.setWindowTitle("拆箱 OCR 单号智能提取器 (高精度特征匹配版)")
+        self.resize(1150, 680)
 
         self.setWindowFlags(
             Qt.WindowType.Window |
@@ -92,14 +88,13 @@ class OcrExtractorDialog(QDialog):
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(5)
+        left_layout.setSpacing(8)
 
         lbl_input = QLabel("1. 拖入/导入 TXT 文件，或直接粘贴内容:")
         lbl_input.setFont(QFont("Microsoft YaHei", 10, QFont.Weight.Bold))
         lbl_input.setStyleSheet("color: #34495e;")
         left_layout.addWidget(lbl_input)
 
-        # 🌟 核心调教：挂载重写后的原生高速拖拽编辑框
         self.input_area = DragDropTextEdit()
         self.input_area.setFont(QFont("Consolas", 10))
         self.input_area.setStyleSheet("background-color: white; border: 1px solid #bdc3c7; border-radius: 3px;")
@@ -107,14 +102,40 @@ class OcrExtractorDialog(QDialog):
         left_layout.addWidget(self.input_area)
         work_layout.addWidget(left_widget, stretch=4)
 
-        # ------ 中栏：操作按钮区 ------
+        # ------ 中栏：操作与参考卡片区 ------
         mid_frame = QWidget()
         mid_layout = QVBoxLayout(mid_frame)
-        mid_layout.setContentsMargins(5, 20, 5, 0)
-        mid_layout.setSpacing(15)
+        mid_layout.setContentsMargins(5, 0, 5, 0)
+        mid_layout.setSpacing(12)
         mid_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # 完美对齐您原版的 5 颗功能按钮与专属色系
+        # 🌟 核心控制：示例箱号参考配置卡片
+        sample_card = QFrame()
+        sample_card.setStyleSheet("background-color: white; border: 1px solid #bdc3c7; border-radius: 4px;")
+        sample_lyt = QVBoxLayout(sample_card)
+        sample_lyt.setContentsMargins(10, 10, 10, 12)
+        sample_lyt.setSpacing(6)
+
+        lbl_sample = QLabel("💡 参考示例箱号:")
+        lbl_sample.setFont(QFont("Microsoft YaHei", 9, QFont.Weight.Bold))
+        lbl_sample.setStyleSheet("color: #2c3e50; border: none;")
+        sample_lyt.addWidget(lbl_sample)
+
+        lbl_tip = QLabel("可留空或填入样例(如 7980053439)，自动按长度与前缀匹配：")
+        lbl_tip.setWordWrap(True)
+        lbl_tip.setFont(QFont("Microsoft YaHei", 8))
+        lbl_tip.setStyleSheet("color: #7f8c8d; border: none;")
+        sample_lyt.addWidget(lbl_tip)
+
+        # 🌟 关键修改：默认留空，添加占位符提示
+        self.sample_input = QLineEdit()
+        self.sample_input.setFont(QFont("Consolas", 10))
+        self.sample_input.setPlaceholderText("例如: 7980053439 或 UANG...")
+        self.sample_input.setStyleSheet("background-color: #f8f9fa; border: 1px solid #ced4da; padding: 5px;")
+        sample_lyt.addWidget(self.sample_input)
+        mid_layout.addWidget(sample_card)
+
+        # 5 颗功能按钮与专属色系
         self.btn_import = QPushButton("📂 导入 TXT")
         self.btn_extract = QPushButton("⚡ 智能提取 ➔")
         self.btn_copy_valid = QPushButton("📋 复制正常单号")
@@ -133,7 +154,7 @@ class OcrExtractorDialog(QDialog):
             "QPushButton { background-color: #6c757d; color: white; border-radius: 4px; border: none; }")
 
         for btn in [self.btn_import, self.btn_extract, self.btn_copy_valid, self.btn_copy_error, self.btn_clear]:
-            btn.setFixedSize(130, 38)
+            btn.setFixedHeight(38)
             btn.setFont(QFont("Microsoft YaHei", 10, QFont.Weight.Bold))
             btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             mid_layout.addWidget(btn)
@@ -151,7 +172,7 @@ class OcrExtractorDialog(QDialog):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(10)
 
-        # 正常单号部分 (Excel 环保淡绿底色)
+        # 正常单号部分
         lbl_valid = QLabel("✅ 成功提取的单号:")
         lbl_valid.setFont(QFont("Microsoft YaHei", 10, QFont.Weight.Bold))
         lbl_valid.setStyleSheet("color: #198754;")
@@ -164,7 +185,7 @@ class OcrExtractorDialog(QDialog):
         right_layout.addWidget(lbl_valid)
         right_layout.addWidget(self.valid_area, stretch=6)
 
-        # 异常文件部分 (柔和浅红预警色)
+        # 异常文件部分
         lbl_error = QLabel("❌ 未提取到单号的图片名 (残缺或无单号):")
         lbl_error.setFont(QFont("Microsoft YaHei", 10, QFont.Weight.Bold))
         lbl_error.setStyleSheet("color: #e74c3c;")
@@ -180,7 +201,7 @@ class OcrExtractorDialog(QDialog):
         work_layout.addWidget(right_widget, stretch=5)
         main_layout.addWidget(workspace)
 
-    # ================= 文件导入与纯净洗白逻辑 =================
+    # ================= 文件导入与渲染逻辑 =================
     def import_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "请选择 OCR 文本文件", "", "Text 文本文件 (*.txt);;所有文件 (*.*)"
@@ -212,11 +233,69 @@ class OcrExtractorDialog(QDialog):
         self.extract_data()
 
     # =====================================================================
-    # 🌟 核心业务解析逻辑 (100% 还原算法，使用 splitlines() 保底清洗)
+    # 🌟 算法级特征匹配与前缀相似度打分引擎
     # =====================================================================
+    def find_best_matching_code(self, block_text, sample_code):
+        sample = sample_code.strip().replace(" ", "").upper()
+
+        # 保底处理：未输入示例时优先尝试传统 UANG+12位，或 10位纯数字
+        if not sample:
+            m1 = re.search(r'(UANG\s*\d{12})', block_text, re.IGNORECASE)
+            if m1: return m1.group(1).replace(" ", "").upper()
+            m2 = re.search(r'\b\d{10}\b', block_text)
+            if m2: return m2.group(0)
+            return None
+
+        sample_len = len(sample)
+        letter_match = re.match(r'^[A-Z]+', sample)
+        letter_prefix = letter_match.group(0) if letter_match else ""
+
+        candidates = []
+
+        if letter_prefix:
+            # 带有字母前缀 (如 UANG123456789012)
+            digits_len = sample_len - len(letter_prefix)
+            pattern = rf'{letter_prefix}\s*\d{{{digits_len}}}'
+            matches = re.findall(pattern, block_text, re.IGNORECASE)
+            for m in matches:
+                candidates.append(m.replace(" ", "").upper())
+        else:
+            # 纯数字型 (如 7980053439，长度 10)
+            pattern = rf'\b\d{{{sample_len}}}\b'
+            candidates = re.findall(pattern, block_text)
+
+        # 如果单词边界未抓到，尝试不带词界的自由匹配
+        if not candidates:
+            pattern_flex = rf'\d{{{sample_len}}}'
+            candidates = re.findall(pattern_flex, block_text)
+
+        if not candidates:
+            return None
+
+        if len(candidates) == 1:
+            return candidates[0]
+
+        # 多候选打分：优先挑选与参考示例【前缀字符重合度最高】的项目
+        def similarity_score(cand):
+            score = 0
+            for c1, c2 in zip(sample, cand):
+                if c1 == c2:
+                    score += 2
+                else:
+                    break
+            for c1, c2 in zip(sample, cand):
+                if c1 == c2:
+                    score += 1
+            return score
+
+        candidates.sort(key=similarity_score, reverse=True)
+        return candidates[0]
+
     def extract_data(self):
         raw_text = self.input_area.toPlainText().strip()
         if not raw_text: return
+
+        sample_code = self.sample_input.text().strip()
 
         pattern = r"≦\s*(.*?)\s*≧"
         matches = list(re.finditer(pattern, raw_text))
@@ -234,11 +313,12 @@ class OcrExtractorDialog(QDialog):
             end_idx = matches[i + 1].start() if i + 1 < len(matches) else len(raw_text)
 
             block_text = raw_text[start_idx:end_idx]
-            num_match = re.search(r'(UANG\s*\d{12})', block_text, re.IGNORECASE)
 
-            if num_match:
-                clean_num = num_match.group(1).replace(" ", "").upper()
-                valid_numbers.append(clean_num)
+            # 调用高精度特征匹配引擎提取单号
+            matched_code = self.find_best_matching_code(block_text, sample_code)
+
+            if matched_code:
+                valid_numbers.append(matched_code)
             else:
                 error_files.append(filename)
 
@@ -259,7 +339,6 @@ class OcrExtractorDialog(QDialog):
 
     def copy_valid_numbers(self):
         content = self.valid_area.toPlainText().strip()
-        # 🌟 绝杀洗白：使用 splitlines 剔除 \r\n 毒素后送入剪贴板
         lines = [line for line in content.splitlines() if line and not line.startswith('---')]
         if lines and "未找到" not in content:
             QApplication.clipboard().setText("\n".join(lines))

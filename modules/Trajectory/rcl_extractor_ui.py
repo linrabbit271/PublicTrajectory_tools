@@ -13,6 +13,22 @@ from PyQt6.QtGui import QFont, QCursor
 
 
 # =====================================================================
+# 🌟 智能拦截输入框：自动清洗粘贴文本，剔除前后空格与隐式空白行
+# =====================================================================
+class SmartPasteTextEdit(QTextEdit):
+    def insertFromMimeData(self, source):
+        if source.hasText():
+            raw_text = source.text()
+            # 按行切分，剔除每行的前后空白，并过滤掉彻底为空的行
+            lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+            # 重新用换行符连接纯净的单号
+            clean_text = "\n".join(lines)
+            self.insertPlainText(clean_text)
+        else:
+            super().insertFromMimeData(source)
+
+
+# =====================================================================
 # 🌟 底层解析算法：速度狂飙，仅读取首页解析
 # =====================================================================
 def extract_awb_from_filename(file_path):
@@ -238,7 +254,9 @@ class RclExtractorApp(QDialog):
         lbl_t2 = QLabel("2. 提单号排序 (可选填)")
         lbl_t2.setStyleSheet("font-weight: bold; color: #34495e; font-size: 13px;")
         right_lyt.addWidget(lbl_t2)
-        self.txt_orders = QTextEdit()
+
+        # 🌟 关键修改：替换为 SmartPasteTextEdit 智能过滤输入框
+        self.txt_orders = SmartPasteTextEdit()
         self.txt_orders.setStyleSheet(
             "background-color: white; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Consolas';")
         right_lyt.addWidget(self.txt_orders)
@@ -286,7 +304,7 @@ class RclExtractorApp(QDialog):
         toolbar.addStretch()
         main_layout.addLayout(toolbar)
 
-        # 3. 数据表格展示区 (🌟 重构列配置，将文件名置于最后一列)
+        # 3. 数据表格展示区 (将文件名置于最后一列)
         self.table = QTableWidget()
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["提单号", "接收时间", "关联文件名预览"])
@@ -317,7 +335,7 @@ class RclExtractorApp(QDialog):
         self.table.verticalHeader().setStyleSheet(
             "QHeaderView::section { background-color: #f1f2f6; color: #7f8c8d; text-align: center; font-weight: normal; font-size: 11px; padding: 0 8px; }")
 
-        # 🌟 自适应调教：前两列(提单号/时间)固定比例交互，第三列(文件名)享受最大化自动拉伸
+        # 前两列(提单号/时间)固定比例交互，第三列(文件名)享受最大化自动拉伸
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)

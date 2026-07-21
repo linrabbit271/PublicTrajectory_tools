@@ -14,6 +14,22 @@ from PyQt6.QtGui import QFont, QCursor
 
 
 # =====================================================================
+# 🌟 智能拦截输入框：自动清洗粘贴文本，剔除前后空格与隐式空白行
+# =====================================================================
+class SmartPasteTextEdit(QTextEdit):
+    def insertFromMimeData(self, source):
+        if source.hasText():
+            raw_text = source.text()
+            # 按行切分，剔除每行的前后空白，并过滤掉彻底为空的行
+            lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+            # 重新用换行符连接纯净的单号
+            clean_text = "\n".join(lines)
+            self.insertPlainText(clean_text)
+        else:
+            super().insertFromMimeData(source)
+
+
+# =====================================================================
 # 🌟 统一调用入口（主程序专用）
 # =====================================================================
 def open_customs_extractor(main_app):
@@ -158,7 +174,8 @@ class CustomsDataExtractorCoreApp(QDialog):
         lbl_input_hint.setStyleSheet("color: #1A73E8; border: none;")
         mid_lyt.addWidget(lbl_input_hint)
 
-        self.target_bl_area = QTextEdit()
+        # 🌟 关键修改：替换为 SmartPasteTextEdit 智能过滤输入框
+        self.target_bl_area = SmartPasteTextEdit()
         self.target_bl_area.setFont(QFont("Consolas", 10))
         self.target_bl_area.setStyleSheet("background-color: #F0F4F9; border: 1px solid #ced4da; border-radius: 4px;")
         mid_lyt.addWidget(self.target_bl_area)
@@ -185,7 +202,7 @@ class CustomsDataExtractorCoreApp(QDialog):
             "QPushButton { background-color: #6c757d; color: white; padding: 8px; border-radius: 4px; }")
         self.btn_clear_mid.clicked.connect(lambda: self.target_bl_area.clear())
         mid_btn_lyt.addWidget(self.btn_clear_mid)
-        mid_lyt.addWidget(mid_frame_widget := mid_btn_frame)
+        mid_lyt.addWidget(mid_btn_frame)
         work_lyt.addWidget(mid_card)
 
         # ----------- 🟣 【右栏：综合数据解析看板】 -----------

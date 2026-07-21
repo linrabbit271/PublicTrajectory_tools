@@ -7,6 +7,22 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QCursor, QKeySequence
 
 
+# =====================================================================
+# 🌟 智能拦截输入框：自动清洗粘贴文本，剔除前后空格与隐式空白行
+# =====================================================================
+class SmartPasteTextEdit(QTextEdit):
+    def insertFromMimeData(self, source):
+        if source.hasText():
+            raw_text = source.text()
+            # 按行切分，剔除每行的前后空白，并过滤掉彻底为空的行
+            lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+            # 重新用换行符连接纯净的单号
+            clean_text = "\n".join(lines)
+            self.insertPlainText(clean_text)
+        else:
+            super().insertFromMimeData(source)
+
+
 def init_node_share_panel(main_app, parent):
     """
     接入主系统的总入口
@@ -78,7 +94,7 @@ class NodeShareApp(QWidget):
         web_card_layout.addWidget(self.web_text)
         left_layout.addWidget(web_card, stretch=1)
 
-        # 左下：用户共享表提单号
+        # 左下：用户共享表提单号 (🌟 改用 SmartPasteTextEdit 智能过滤输入框)
         user_card = QFrame()
         user_card.setStyleSheet("background-color: white; border: 1px solid #bdc3c7; border-radius: 4px;")
         user_card_layout = QVBoxLayout(user_card)
@@ -89,7 +105,8 @@ class NodeShareApp(QWidget):
         lbl_user.setStyleSheet("color: #2980b9; border: none;")
         user_card_layout.addWidget(lbl_user)
 
-        self.user_text = QTextEdit()
+        # 🌟 关键修改：替换为 SmartPasteTextEdit
+        self.user_text = SmartPasteTextEdit()
         self.user_text.setFont(QFont("Consolas", 11))
         self.user_text.setStyleSheet("background-color: #f8f9fa; border: 1px solid #dcdde1;")
         user_card_layout.addWidget(self.user_text)

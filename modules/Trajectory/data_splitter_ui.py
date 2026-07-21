@@ -3,9 +3,25 @@ import shutil
 import platform
 import subprocess
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QFrame, QLineEdit, QTextEdit, QFileDialog, QMessageBox, QWidget)
+                             QLabel, QFrame, QLineEdit, QTextEdit, QFileDialog, QMessageBox, QWidget, QApplication)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
+
+
+# =====================================================================
+# 🌟 智能拦截输入框：自动清洗粘贴文本，剔除前后空格与隐式空白行
+# =====================================================================
+class SmartPasteTextEdit(QTextEdit):
+    def insertFromMimeData(self, source):
+        if source.hasText():
+            raw_text = source.text()
+            # 按行切分，剔除每行的前后空白，并过滤掉彻底为空的行
+            lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+            # 重新用换行符连接纯净的单号
+            clean_text = "\n".join(lines)
+            self.insertPlainText(clean_text)
+        else:
+            super().insertFromMimeData(source)
 
 
 def open_data_splitter(parent_app):
@@ -20,13 +36,15 @@ class DataSplitterDialog(QDialog):
         self._keep_alive = self  # 🌟 独立窗口防内存垃圾回收秒退
 
         self.setWindowTitle("资料分割器")
-        self.setFixedSize(550, 560)
 
-        # 🌟 核心控制：绝对置顶 + 激活独立最小化/关闭控制栏暗示
+        # 🌟 1. 允许自由放大与自适应拉伸
+        self.setMinimumSize(580, 650)
+        self.resize(620, 680)
+
+        # 🌟 2. 显式开启【最大化/还原/最小化/关闭】完整控制栏
         self.setWindowFlags(
             Qt.WindowType.Window |
-
-            Qt.WindowType.WindowMinimizeButtonHint |
+            Qt.WindowType.WindowMinMaxButtonsHint |
             Qt.WindowType.WindowCloseButtonHint
         )
         self.setStyleSheet("background-color: #ecf0f1;")
@@ -50,12 +68,12 @@ class DataSplitterDialog(QDialog):
         header.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         main_layout.addWidget(header)
 
-        # 2. 核心工作区容器
+        # 2. 核心工作区容器 (开启弹性自适应)
         workspace = QWidget()
         work_layout = QVBoxLayout(workspace)
-        work_layout.setContentsMargins(25, 20, 25, 20)
+        work_layout.setContentsMargins(20, 15, 20, 15)
         work_layout.setSpacing(15)
-        main_layout.addWidget(workspace)
+        main_layout.addWidget(workspace, stretch=1)
 
         # --- 第一行：工作目录卡片 ---
         dir_card = QFrame()
@@ -68,9 +86,7 @@ class DataSplitterDialog(QDialog):
         lbl_dir_title.setStyleSheet("font-weight: bold; color: #2c3e50; font-size: 13px; border: none;")
         dir_lyt.addWidget(lbl_dir_title)
 
-        dir_input_frame = QWidget()
-        dir_input_frame.setStyleSheet("border: none;")
-        dir_input_lyt = QHBoxLayout(dir_input_frame)
+        dir_input_lyt = QHBoxLayout()
         dir_input_lyt.setContentsMargins(0, 0, 0, 0)
         dir_input_lyt.setSpacing(10)
 
@@ -92,10 +108,10 @@ class DataSplitterDialog(QDialog):
         """)
         btn_browse.clicked.connect(self.select_folder)
         dir_input_lyt.addWidget(btn_browse)
-        dir_lyt.addWidget(dir_input_frame)
+        dir_lyt.addLayout(dir_input_lyt)
         work_layout.addWidget(dir_card)
 
-        # --- 第二行：提单号输入卡片 ---
+        # --- 第二行：提单号输入卡片 (🌟 换用 SmartPasteTextEdit) ---
         bl_card = QFrame()
         bl_card.setStyleSheet("background-color: white; border: 1px solid #ced4da; border-radius: 6px;")
         bl_lyt = QVBoxLayout(bl_card)
@@ -106,7 +122,7 @@ class DataSplitterDialog(QDialog):
         lbl_bl_title.setStyleSheet("font-weight: bold; color: #2c3e50; font-size: 13px; border: none;")
         bl_lyt.addWidget(lbl_bl_title)
 
-        self.bl_text_box = QTextEdit()
+        self.bl_text_box = SmartPasteTextEdit()
         self.bl_text_box.setStyleSheet("""
             QTextEdit {
                 font-family: "Consolas", "Microsoft YaHei"; font-size: 13px;
@@ -117,14 +133,13 @@ class DataSplitterDialog(QDialog):
         bl_lyt.addWidget(self.bl_text_box, stretch=1)
         work_layout.addWidget(bl_card, stretch=1)
 
-        # --- 第三行：并排操作按钮 (固定大尺寸防吞字) ---
-        btn_frame = QWidget()
-        btn_lyt = QHBoxLayout(btn_frame)
-        btn_lyt.setContentsMargins(0, 0, 0, 0)
-        btn_lyt.setSpacing(12)
+        # --- 第三行：底部双按钮栏 (🌟 彻底修复组件未绑定渲染的 Bug) ---
+        btn_lyt = QHBoxLayout()
+        btn_lyt.setContentsMargins(0, 5, 0, 5)
+        btn_lyt.setSpacing(15)
 
         self.btn_run = QPushButton("🚀 开始执行分类")
-        self.btn_run.setFixedSize(235, 45)
+        self.btn_run.setFixedHeight(48)
         self.btn_run.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_run.setStyleSheet("""
             QPushButton { background-color: #27ae60; color: white; font-size: 14px; font-weight: bold; border-radius: 5px; border-bottom: 3px solid #1e8449; }
@@ -132,10 +147,10 @@ class DataSplitterDialog(QDialog):
             QPushButton:pressed { border-bottom: 1px solid #1e8449; padding-top: 4px; }
         """)
         self.btn_run.clicked.connect(self.run_separation)
-        btn_lyt.addWidget(self.btn_run)
+        btn_lyt.addWidget(self.btn_run, stretch=1)
 
         self.btn_open = QPushButton("📂 打开工作目录")
-        self.btn_open.setFixedSize(235, 45)
+        self.btn_open.setFixedHeight(48)
         self.btn_open.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_open.setStyleSheet("""
             QPushButton { background-color: #2980b9; color: white; font-size: 14px; font-weight: bold; border-radius: 5px; border-bottom: 3px solid #1f618d; }
@@ -143,12 +158,12 @@ class DataSplitterDialog(QDialog):
             QPushButton:pressed { border-bottom: 1px solid #1f618d; padding-top: 4px; }
         """)
         self.btn_open.clicked.connect(self.open_folder)
-        btn_lyt.addWidget(self.btn_open)
+        btn_lyt.addWidget(self.btn_open, stretch=1)
 
         work_layout.addLayout(btn_lyt)
 
     # =====================================================================
-    # 🌟 核心槽逻辑函数 (完美继承您的无损分离算法)
+    # 🌟 核心槽逻辑函数
     # =====================================================================
     def select_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "选择工作文件夹")
@@ -173,7 +188,7 @@ class DataSplitterDialog(QDialog):
     def run_separation(self):
         source_dir = self.entry_folder.text().strip()
         raw_bl_text = self.bl_text_box.toPlainText()
-        target_bl_list = [line.strip() for line in raw_bl_text.split('\n') if line.strip()]
+        target_bl_list = [line.strip() for line in raw_bl_text.splitlines() if line.strip()]
 
         if not source_dir or not os.path.exists(source_dir):
             QMessageBox.warning(self, "提示", "请选择有效的文件夹路径。")
