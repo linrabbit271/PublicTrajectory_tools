@@ -14,7 +14,6 @@ else:
     sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 
-
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QLabel, QFrame,
                              QStackedWidget, QMessageBox, QDialog, QTextEdit,
@@ -529,6 +528,7 @@ class LogisticsToolboxApp(QMainWindow):
             ("✈️\nHACTL", lambda: __import__("modules.Trajectory.hactl_extractor_ui", fromlist=["open_hactl_extractor"]).open_hactl_extractor(self)),
             ("📦\nOCR提取", lambda: __import__("modules.Trajectory.ocr_extractor_ui", fromlist=["open_ocr_extractor"]).open_ocr_extractor(self)),
             ("📁\n工作舱初始化", lambda: __import__("modules.Trajectory.folder_initializer_ui", fromlist=["open_folder_initializer"]).open_folder_initializer(self)),
+            ("📝\n报关资料名修改器", lambda: __import__("modules.Trajectory.customs_renamer_ui", fromlist=["open_customs_renamer"]).open_customs_renamer(self)),
         ]
 
         for i in range(20):

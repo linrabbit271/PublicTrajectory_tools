@@ -207,13 +207,15 @@ class TemuScraperDialog(QDialog):
         self._keep_alive = self  # 🌟 护盾防垃圾回收秒退
 
         self.setWindowTitle("Temu 运单数据抓取工具")
-        self.setFixedSize(700, 560)
 
-        # 🌟 核心控制：绝对置顶 + 激活独立最小化/关闭控制栏暗示
+        # 🌟 1. 允许自由放大拉伸：由 setFixedSize 改为安全最小尺寸
+        self.setMinimumSize(700, 560)
+        self.resize(750, 600)
+
+        # 🌟 2. 开启完整的【最大化/还原/最小化/关闭】控制栏
         self.setWindowFlags(
             Qt.WindowType.Window |
-
-            Qt.WindowType.WindowMinimizeButtonHint |
+            Qt.WindowType.WindowMinMaxButtonsHint |
             Qt.WindowType.WindowCloseButtonHint
         )
         self.setStyleSheet("background-color: #f0f2f5;")
@@ -306,7 +308,7 @@ class TemuScraperDialog(QDialog):
         self.result_text.clear()
         self.progress_bar.setValue(0)
 
-        # 稳妥交付异步后台线程跑 Selenium
+        # 交付后台线程执行 Selenium 抓取
         threading.Thread(target=self.run_scraping_task, daemon=True).start()
 
     def run_scraping_task(self):
@@ -317,7 +319,7 @@ class TemuScraperDialog(QDialog):
         self.updater.finish_sig.emit(success, result_or_error)
 
     # =====================================================================
-    # 🌟 线程安全槽处理接收区 (由主线程稳妥弹窗，百分之百解决卡死)
+    # 🌟 线程安全槽处理接收区 (完成时强行将窗口拉回最前台并弹窗)
     # =====================================================================
     def _update_status_slot(self, text, progress):
         self.status_label.setText(text)
@@ -331,16 +333,22 @@ class TemuScraperDialog(QDialog):
         self.start_btn.setEnabled(True)
         self.start_btn.setText("🚀 开始接管并抓取")
 
+        # 🌟 核心绝杀：无论抓取时浏览器怎么抢焦点，跑完瞬间将本工具窗口强行拉回屏幕前方并激活！
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
         if success:
             self.result_text.setPlainText(result_or_error)
             # 自动塞入剪贴板
             QApplication.clipboard().setText(result_or_error.strip())
-            QMessageBox.information(self, "成功", "数据抓取圆满完成！\n\n✅ 结果已自动为您复制到剪贴板，可直接去粘贴。")
+            QMessageBox.information(self, "执行完毕",
+                                    "🎉 数据抓取圆满完成！\n\n✅ 结果已自动为您复制到剪贴板，可直接去粘贴。")
         else:
             self.status_label.setText("抓取失败！")
             self.status_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
             self.progress_bar.setValue(0)
-            QMessageBox.critical(self, "错误", result_or_error)
+            QMessageBox.critical(self, "执行中断", result_or_error)
 
     def copy_to_clipboard(self):
         content = self.result_text.toPlainText().strip()
